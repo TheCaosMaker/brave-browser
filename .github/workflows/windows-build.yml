@@ -9,30 +9,31 @@ jobs:
     timeout-minutes: 360
 
     steps:
-    - name: Checkout brave-browser
+    - name: Checkout brave-browser repo
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    - name: Setup depot_tools
+      run: |
+        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git depot_tools
+        echo "${{ runner.temp }}\\depot_tools" >> $env:GITHUB_PATH
+
+    - name: Install Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 18
 
-    - name: Install Node.js deps
+    - name: Install npm deps
       run: npm install
 
-    - name: Manually clone brave-core (your fork)
-      run: git clone --depth=1 https://github.com/TheCaosMaker/brave-core.git src/brave
+    - name: Sync dependencies with gclient
+      run: gclient sync --with_branch_heads --with_tags
+      working-directory: src
 
-
-    - name: Sync Chromium dependencies
-      run: |
-        node scripts/sync.js --no-init
-
-    - name: Apply Brave Lite Patch
+    - name: Apply patch brave-lite-final
       run: git apply ../../patches/brave-lite-final.patch
       working-directory: src/brave
 
-    - name: Configure build
+    - name: Configure build with GN
       run: |
         echo 'is_debug = false
         is_official_build = true
@@ -54,11 +55,11 @@ jobs:
         gn gen out/Default --args="`type args.gn`"
       working-directory: src
 
-    - name: Build Brave
+    - name: Build Brave Lite
       run: autoninja -C out/Default brave
       working-directory: src
 
-    - name: Upload executable
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: brave-lite-windows
