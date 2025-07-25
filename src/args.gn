@@ -1,0 +1,59 @@
+# Este é um arquivo de configuração de build (args.gn) para o Brave.
+# Ele desativa a maioria das funcionalidades específicas do Brave para criar uma versão mais "limpa".
+
+# Configurações para uma build de Release oficial, sem símbolos de debug.
+is_official_build = true
+is_debug = false
+symbol_level = 0
+blink_symbol_level = 0
+
+# Desativa o Brave Rewards
+enable_brave_rewards = false
+
+# Desativa a Brave Wallet
+enable_brave_wallet = false
+
+# Desativa o Brave Talk
+enable_brave_talk = false
+
+# Desativa o suporte à Brave VPN
+brave_vpn_support = false
+
+# Desativa a integração com Tor
+enable_tor = false
+
+# Desativa o Brave News
+enable_brave_news = false
+
+# Desativa o chat de IA (Leo)
+enable_brave_ai_chat = false
+
+# Desativa o atualizador automático do Brave
+# Isso é crucial para evitar que sua build personalizada seja substituída.
+enable_brave_updater = false
+
+# Desativa a API JavaScript navigator.brave.isBrave()
+# Nota: Isso remove a API, mas sites ainda podem tentar usar outras técnicas de fingerprinting.
+enable_is_brave_api = false
+
+# Desativa os anúncios do Brave
+enable_brave_ads = false
+
+# Desativa o sistema de captcha adaptativo do Brave
+enable_adaptive_captcha = false
+
+# Desativa os referrals do Brave
+enable_brave_referrals = false
+
+# Desativa a telemetria e relatórios.
+# A flag 'enable_reporting' é uma flag geral do Chromium para desativar relatórios de crash e métricas.
+enable_reporting = false
+brave_telemetry_reporting_enabled = false
+brave_metrics_reporting_enabled = false
+
+# NOTA SOBRE HEADERS E USER-AGENT:
+# Remover os headers 'Sec-CH-UA' e outros para se passar 100% pelo Chrome é muito complexo.
+# Não há uma flag de compilação simples para isso, pois está profundamente integrado
+# na lógica de privacidade e rede do Brave. Isso exigiria patches diretos no código-fonte C++ do navegador,
+# o que está além do escopo de uma configuração de build. Desativar as outras funcionalidades
+# já reduzirá significativamente a superfície de detecção do Brave.
