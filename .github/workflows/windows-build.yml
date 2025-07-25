@@ -26,7 +26,7 @@ jobs:
 
     - name: Sync Chromium dependencies
       run: |
-        node sync.js --no-init
+        node scripts/sync.js --no-init
 
     - name: Apply Brave Lite Patch
       run: git apply ../../patches/brave-lite-final.patch
