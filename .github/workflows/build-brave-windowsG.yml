@@ -1,0 +1,105 @@
+name: Build Personalizado do Brave para Windows (Release)
+
+on:
+  workflow_dispatch: # Permite acionamento manual
+
+jobs:
+  build:
+    # IMPORTANTE: Use um runner self-hosted para Windows.
+    # Os runners padrão do GitHub não têm espaço em disco ou tempo suficientes.
+    # Exemplo: runs-on: [self-hosted, windows, x64]
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout do Repositório (com submódulos)
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      # O Windows requer que o caminho do projeto não seja muito longo.
+      # Mover para um caminho mais curto pode prevenir erros de compilação.
+      - name: Mover código para um caminho mais curto
+        shell: pwsh
+        run: |
+          $newPath = "C:\b"
+          New-Item -ItemType Directory -Force -Path $newPath
+          Move-Item -Path $env:GITHUB_WORKSPACE\* -Destination $newPath
+          cd $newPath
+          echo "Moved source to $newPath"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Instalar Dependências de Build do Windows
+        shell: pwsh
+        working-directory: C:\b # Trabalhar no novo diretório
+        run: |
+          # Este script oficial do Brave baixa e instala o Visual Studio Build Tools,
+          # o SDK do Windows e outras dependências necessárias.
+          python brave/build/install-build-deps.py --no-arm64-build-tools
+
+      - name: Sincronizar Dependências do Chromium (gclient sync)
+        shell: pwsh
+        working-directory: C:\b
+        run: |
+          npm install
+          # A flag --ci é otimizada para ambientes de integração contínua
+          npm run-script sync -- --ci
+
+      - name: Criar arquivo de configuração de build (args.gn)
+        shell: pwsh
+        working-directory: C:\b
+        run: |
+          # Cria o diretório de configuração se ele não existir
+          $configDir = "src\brave\build\args"
+          New-Item -ItemType Directory -Force -Path $configDir
+
+          # Conteúdo do arquivo args.gn que definimos anteriormente
+          $gn_args = @"
+          is_official_build = true
+          is_debug = false
+          symbol_level = 0
+          blink_symbol_level = 0
+          enable_brave_rewards = false
+          enable_brave_wallet = false
+          enable_brave_talk = false
+          brave_vpn_support = false
+          enable_tor = false
+          enable_brave_news = false
+          enable_brave_ai_chat = false
+          enable_brave_updater = false
+          enable_is_brave_api = false
+          enable_brave_ads = false
+          enable_adaptive_captcha = false
+          enable_brave_referrals = false
+          enable_reporting = false
+          brave_telemetry_reporting_enabled = false
+          brave_metrics_reporting_enabled = false
+          "@
+
+          # Salva o conteúdo no arquivo de configuração para a build de Release
+          $gn_args | Out-File -FilePath "$configDir\windows-release.gn" -Encoding UTF8
+          Write-Host "Arquivo de configuração 'windows-release.gn' criado com sucesso."
+
+      - name: Compilar o Navegador Brave (Release)
+        shell: pwsh
+        working-directory: C:\b
+        run: |
+          # Compila a versão Release para Windows, usando a configuração que criamos
+          npm run build -- --target_os="win" --configuration="release" --project="brave"
+
+      - name: Empacotar o Instalador do Windows
+        shell: pwsh
+        working-directory: C:\b
+        run: |
+          # Cria o instalador .exe a partir dos arquivos compilados
+          npm run-script package -- --configuration="release"
+
+      - name: Fazer Upload do Instalador como Artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: brave-browser-windows-installer
+          # O instalador geralmente é gerado neste caminho
+          path: C:\b\src\out\Release\brave_installer-x64.exe
