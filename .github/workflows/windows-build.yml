@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 360
 
     steps:
-    - name: Checkout repository
+    - name: Checkout brave-browser
       uses: actions/checkout@v4
 
     - name: Setup Node.js
@@ -17,14 +17,20 @@ jobs:
       with:
         node-version: 18
 
-    - name: Install dependencies & init project
-      run: |
-        npm install
-        npm run init
+    - name: Install Node.js deps
+      run: npm install
 
-    - name: Apply brave-lite patch (opcional)
+    - name: Manually clone brave-core (your fork)
       run: |
-        git apply patches/brave-lite-full-final.patch
+        mkdir src
+        git clone --depth=1 https://github.com/TheCaosMaker/brave-core.git src/brave
+
+    - name: Sync Chromium dependencies
+      run: |
+        node sync.js --no-init
+
+    - name: Apply Brave Lite Patch
+      run: git apply ../../patches/brave-lite-final.patch
       working-directory: src/brave
 
     - name: Configure build
